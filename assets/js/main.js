@@ -1,58 +1,121 @@
-// Fix DOM matches function
-if (!Element.prototype.matches) {
-  Element.prototype.matches =
-    Element.prototype.matchesSelector ||
-    Element.prototype.mozMatchesSelector ||
-    Element.prototype.msMatchesSelector ||
-    Element.prototype.oMatchesSelector ||
-    Element.prototype.webkitMatchesSelector ||
-    function(s) {
-      var matches = (this.document || this.ownerDocument).querySelectorAll(s),
-        i = matches.length;
-      while (--i >= 0 && matches.item(i) !== this) {}
-      return i > -1;
-    };
-}
+/*
+	Prologue by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+*/
 
-// Get Scroll position
-function getScrollPos() {
-  var supportPageOffset = window.pageXOffset !== undefined;
-  var isCSS1Compat = ((document.compatMode || "") === "CSS1Compat");
+(function($) {
 
-  var x = supportPageOffset ? window.pageXOffset : isCSS1Compat ? document.documentElement.scrollLeft : document.body.scrollLeft;
-  var y = supportPageOffset ? window.pageYOffset : isCSS1Compat ? document.documentElement.scrollTop : document.body.scrollTop;
+	skel.breakpoints({
+		wide: '(min-width: 961px) and (max-width: 1880px)',
+		normal: '(min-width: 961px) and (max-width: 1620px)',
+		narrow: '(min-width: 961px) and (max-width: 1320px)',
+		narrower: '(max-width: 960px)',
+		mobile: '(max-width: 736px)'
+	});
 
-  return { x: x, y: y };
-}
+	$(function() {
 
-var _scrollTimer = [];
+		var	$window = $(window),
+			$body = $('body');
 
-// Smooth scroll
-function smoothScrollTo(y, time) {
-  time = time == undefined ? 500 : time;
+		// Disable animations/transitions until the page has loaded.
+			$body.addClass('is-loading');
 
-  var scrollPos = getScrollPos();
-  var count = 60;
-  var length = (y - scrollPos.y);
+			$window.on('load', function() {
+				$body.removeClass('is-loading');
+			});
 
-  function easeInOut(k) {
-    return .5 * (Math.sin((k - .5) * Math.PI) + 1);
-  }
+		// CSS polyfills (IE<9).
+			if (skel.vars.IEVersion < 9)
+				$(':last-child').addClass('last-child');
 
-  for (var i = _scrollTimer.length - 1; i >= 0; i--) {
-    clearTimeout(_scrollTimer[i]);
-  }
+		// Fix: Placeholder polyfill.
+			$('form').placeholder();
 
-  for (var i = 0; i <= count; i++) {
-    (function() {
-      var cur = i;
-      _scrollTimer[cur] = setTimeout(function() {
-        window.scrollTo(
-          scrollPos.x,
-          scrollPos.y + length * easeInOut(cur/count)
-        );
-      }, (time / count) * cur);
-    })();
-  }
-}
+		// Prioritize "important" elements on mobile.
+			skel.on('+mobile -mobile', function() {
+				$.prioritize(
+					'.important\\28 mobile\\29',
+					skel.breakpoint('mobile').active
+				);
+			});
 
+		// Scrolly links.
+			$('.scrolly').scrolly();
+
+		// Nav.
+			var $nav_a = $('#nav a.scrolly');
+
+			// Scrolly-fy links.
+				if($nav_a.scrolly()){
+					$nav_a
+						.scrolly()
+						.on('click', function(e) {
+
+							var t = $(this),
+								href = t.attr('href');
+
+							if (href[0] != '#')
+								return;
+
+							e.preventDefault();
+
+							// Clear active and lock scrollzer until scrolling has stopped
+								$nav_a
+									.removeClass('active')
+									.addClass('scrollzer-locked');
+
+							// Set this link to active
+								t.addClass('active');
+
+						});
+				}
+
+			// Initialize scrollzer.
+				var ids = [];
+
+				$nav_a.each(function() {
+
+					var href = $(this).attr('href');
+
+					if (href[0] != '#')
+						return;
+
+					ids.push(href.substring(1));
+
+				});
+
+				$.scrollzer(ids, { pad: 200, lastHack: true });
+
+		// Header (narrower + mobile).
+
+			// Toggle.
+				$(
+					'<div id="headerToggle">' +
+						'<a href="#header" class="toggle"></a>' +
+					'</div>'
+				)
+					.appendTo($body);
+
+			// Header.
+				$('#header')
+					.panel({
+						delay: 500,
+						hideOnClick: true,
+						hideOnSwipe: true,
+						resetScroll: true,
+						resetForms: true,
+						side: 'left',
+						target: $body,
+						visibleClass: 'header-visible'
+					});
+
+			// Fix: Remove transitions on WP<10 (poor/buggy performance).
+				if (skel.vars.os == 'wp' && skel.vars.osVersion < 10)
+					$('#headerToggle, #header, #main')
+						.css('transition', 'none');
+
+	});
+
+})(jQuery);
